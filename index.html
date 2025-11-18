@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>高機能 Web電卓</title>
+
+<!-- decimal.js for arbitrary-precision arithmetic -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/decimal.js/10.4.3/decimal.min.js" defer></script>
+
+<style>
+  :root{
+    --bg:#f2f6fb; --panel:#ffffff; --accent:#1f78ff; --accent-2:#0b74ff;
+    --digit:#0b1220; --muted:#556579; --btn:#f3f6fb; --danger:#ef4444;
+    --glass: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.5));
+  }
+  [data-theme="dark"]{
+    --bg:#071029; --panel:#07162a; --accent:#60a5fa; --accent-2:#3b82f6;
+    --digit:#e6eef8; --muted:#94a3b8; --btn:#0b1220;
+  }
+
+  html,body{height:100%; margin:0; background:linear-gradient(180deg,var(--bg),#e9eef8); font-family:Inter, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing:antialiased; color:var(--digit);}
+  .wrap{max-width:920px; margin:28px auto; padding:18px; display:grid; gap:14px;}
+  .grid{display:grid; grid-template-columns: 1fr 360px; gap:14px;}
+  @media(max-width:920px){ .grid{grid-template-columns:1fr;} }
+
+  .panel{background:var(--panel); border-radius:12px; padding:14px; box-shadow:0 8px 30px rgba(8,18,40,0.06);}
+  .display{border-radius:10px; padding:12px; background:var(--glass); display:flex; flex-direction:column; gap:8px;}
+  .topline{display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .title{font-weight:700; font-size:18px;}
+  .sub{font-size:13px; color:var(--muted);}
+  .expr{min-height:36px; padding:8px; background:transparent; border-radius:6px; outline:none; font-size:18px; color:var(--digit);}
+  .expr[contenteditable="true"]{ caret-color:var(--accent); }
+  .result{font-size:36px; font-weight:800; text-align:right; color:var(--accent);}
+  .result-sub{font-size:13px; color:var(--muted); text-align:right;}
+
+  .kbd{display:grid; grid-template-columns: repeat(6, 1fr); gap:8px; margin-top:12px;}
+  @media(max-width:640px){ .kbd{grid-template-columns: repeat(4, 1fr);} }
+  button.key{padding:12px; border-radius:8px; border:0; background:var(--btn); cursor:pointer; font-size:16px; color:var(--digit); box-shadow:0 2px 0 rgba(0,0,0,0.04);}
+  button.op{ background:linear-gradient(180deg,var(--accent),var(--accent-2)); color:white; font-weight:700; }
+  button.func{ background:transparent; border:1px solid rgba(0,0,0,0.06); color:var(--muted); }
+  .wide{grid-column: span 2;}
+
+  .controls{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .small{font-size:13px; color:var(--muted);}
+  .mem-ind{background:#fffbeb;color:#92400e;padding:6px 8px;border-radius:8px;font-size:13px; display:inline-flex; align-items:center; gap:6px;}
+  .search{display:flex; gap:8px; align-items:center;}
+  input[type="search"], input[type="text"]{padding:8px 10px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); background:transparent; color:var(--digit); font-size:14px; width:100%;}
+  .history-list{max-height:400px; overflow:auto; margin-top:8px; padding:8px; border-radius:8px; background:linear-gradient(180deg, rgba(0,0,0,0.01), transparent);}
+
+  .hist-item{display:flex; justify-content:space-between; padding:8px; border-radius:8px; cursor:pointer;}
+  .hist-item:hover{background:rgba(0,0,0,0.03);}
+  .hint{font-size:13px; color:var(--muted); margin-top:6px;}
+
+  .row{display:flex; gap:8px; align-items:center;}
+  .primary{background:linear-gradient(180deg,var(--accent),var(--accent-2)); color:white; border:0; padding:10px 12px; border-radius:8px; cursor:pointer; font-weight:700;}
+
+  footer{margin-top:6px; font-size:13px; color:var(--muted); text-align:center;}
+
+  /* Focus outline */
+  .expr:focus, button:focus, input:focus { outline: 3px solid rgba(59,130,246,0.08); }
+  .danger{color:var(--danger);}
+</style>
+</head>
+<body data-theme="light">
+<div class="wrap">
+  <div class="grid">
+    <!-- Main calculator panel -->
+    <div class="panel">
+      <div class="display" role="application" aria-label="高機能電卓">
+        <div class="topline">
+          <div>
+            <div class="title">Web電卓</div>
+            <div class="sub">関数・括弧・パーセント・累乗・高精度・deg/rad対応</div>
+          </div>
+          <div class="controls" aria-hidden="false">
+            <div class="mem-ind" id="memIndicator" style="display:none" title="メモリに値があります">M</div>
+            <button id="themeBtn" class="func" title="テーマ切替">テーマ</button>
+            <select id="angleMode" title="角度単位" style="padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:transparent;">
+              <option value="rad">rad</option>
+              <option value="deg">deg</option>
+            </select>
+          </div>
+        </div>
+
+        <div contenteditable="true" id="expr" class="expr" role="textbox" aria-label="数式入力" spellcheck="false" placeholder="例: 1+1, sin(30), 2^10, 5!"></div>
+        <div>
+          <div id="result" class="result">--</div>
+          <div class="result-sub" id="resultSub">Enter で計算・Ans で直前の結果を挿入</div>
+        </div>
+
+        <div class="kbd" id="kbd" aria-hidden="false">
+          <!-- first row -->
+          <button class="key func" data-insert="(" title="左括弧">(</button>
+          <button class="key func" data-insert=")" title="右括弧">)</button>
+          <button class="key func" data-insert="%" title="％（パーセント）">%</button>
+          <button class="key func" data-insert="^" title="累乗">^</button>
+          <button class="key func" id="ansBtn" title="直前の結果を挿入">Ans</button>
+          <button class="key func" id="mc" title="MC: 入力欄を消去（要求通り）">MC</button>
+
+          <button class="key func" data-func="sqrt" title="sqrt(x)">√</button>
+          <button class="key func" data-func="pow2" title="x²">x²</button>
+          <button class="key func" data-func="pow3" title="x³">x³</button>
+          <button class="key func" data-func="inv" title="1/x">1/x</button>
+          <button class="key func" data-func="fac" title="階乗">n!</button>
+          <button class="key func" id="mPlus" title="M+: 現在の結果をメモリに加算">M+</button>
+
+          <button class="key" data-insert="7">7</button>
+          <button class="key" data-insert="8">8</button>
+          <button class="key" data-insert="9">9</button>
+          <button class="key op" data-insert="/" title="÷">÷</button>
+          <button class="key func" data-func="sin" title="sin">sin</button>
+          <button class="key func" data-func="asin" title="asin">asin</button>
+
+          <button class="key" data-insert="4">4</button>
+          <button class="key" data-insert="5">5</button>
+          <button class="key" data-insert="6">6</button>
+          <button class="key op" data-insert="*" title="×">×</button>
+          <button class="key func" data-func="cos" title="cos">cos</button>
+          <button class="key func" data-func="acos" title="acos">acos</button>
+
+          <button class="key" data-insert="1">1</button>
+          <button class="key" data-insert="2">2</button>
+          <button class="key" data-insert="3">3</button>
+          <button class="key op" data-insert="-" title="−">−</button>
+          <button class="key func" data-func="tan" title="tan">tan</button>
+          <button class="key func" data-func="atan" title="atan">atan</button>
+
+          <button class="key wide" data-insert="0">0</button>
+          <button class="key" data-insert=".">.</button>
+          <button class="key op" data-insert="+" title="+">+</button>
+          <button class="key func" id="clear" title="クリア">C</button>
+          <button class="key op primary" id="eval" title="計算">=</button>
+        </div>
+
+        <div class="hint">さらに、上下キーで履歴をたどれます。大きな数は高精度で計算されます。</div>
+      </div>
+    </div>
+
+    <!-- Right column: history, search, controls -->
+    <div class="panel">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div class="title">履歴</div>
+          <div class="sub">検索・フィルタ・エクスポートあり</div>
+        </div>
+        <div class="row">
+          <button id="exportBtn" class="func" title="履歴をエクスポート">エクスポート</button>
+          <button id="clearHist" class="func" title="履歴を消去">履歴消去</button>
+        </div>
+      </div>
+
+      <div style="margin-top:10px; display:flex; gap:8px;">
+        <input type="search" id="histSearch" placeholder="履歴を検索 (式・結果)" aria-label="履歴検索" />
+        <select id="histFilter" title="フィルタ">
+          <option value="all">すべて</option>
+          <option value="functions">関数を含む</option>
+          <option value="errors">エラーのみ</option>
+        </select>
+      </div>
+
+      <div class="history-list" id="historyList" aria-live="polite" style="margin-top:10px;"></div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+        <div class="small">保存件数: <span id="histCount">0</span></div>
+        <div class="small">ロケール: <span id="localeLabel"></span></div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div class="title" style="font-size:15px;">操作ガイド</div>
+        <ul style="margin:8px 0 0 18px; padding:0; color:var(--muted);">
+          <li>式を直接入力して Enter または = で計算します。</li>
+          <li>Ans ボタンで直前の計算結果を挿入します。</li>
+          <li>MC ボタンで入力欄を即座に消去します（要求通り）。</li>
+          <li>M+ ボタンで現在の結果をメモリに追加、メモリがあると M が表示されます。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <footer>作成 —ciel 高機能 Web 電卓</footer>
+</div>
+
+<script>
+/* 全機能実装スクリプト
+   - decimal.js を利用（高精度）
+   - シャントゥンヤード + RPN 評価
+   - 関数: sin cos tan asin acos atan sqrt ln log abs pow2 pow3 inv fac
+   - deg/rad 切替
+   - 履歴検索・フィルタ、履歴は localStorage 永続化
+   - 結果が正確に 48 の場合は指定ページに置換し、履歴に残さない
+   - MC clears expression (ユーザー要望)
+   - 操作をわかりやすくするためのツールチップと説明
+*/
+
+(function(){
+  "use strict";
+
+  // Wait for decimal.js to be available if loaded deferred
+  function whenDecimalReady(cb){
+    if(window.Decimal) return cb();
+    const i = setInterval(()=>{ if(window.Decimal){ clearInterval(i); cb(); } }, 20);
+    setTimeout(()=>{ if(!window.Decimal){ console.warn('Decimal not loaded, falling back to Number'); cb(); } }, 3000);
+  }
+
+  whenDecimalReady(init);
+
+  function init(){
+    // UI refs
+    const exprEl = document.getElementById('expr');
+    const resultEl = document.getElementById('result');
+    const resultSub = document.getElementById('resultSub');
+    const kbd = document.getElementById('kbd');
+    const evalBtn = document.getElementById('eval');
+    const clearBtn = document.getElementById('clear');
+    const ansBtn = document.getElementById('ansBtn');
+    const mcBtn = document.getElementById('mc');
+    const mPlus = document.getElementById('mPlus');
+    const memIndicator = document.getElementById('memIndicator');
+    const themeBtn = document.getElementById('themeBtn');
+    const angleMode = document.getElementById('angleMode');
+    const historyList = document.getElementById('historyList');
+    const histCount = document.getElementById('histCount');
+    const histSearch = document.getElementById('histSearch');
+    const histFilter = document.getElementById('histFilter');
+    const exportBtn = document.getElementById('exportBtn');
+    const clearHist = document.getElementById('clearHist');
+    const localeLabel = document.getElementById('localeLabel');
+
+    // Storage keys
+    const STORAGE_KEY = 'webcalc_full_history_v1';
+    const MEMORY_KEY = 'webcalc_full_memory_v1';
+    const MAX_HISTORY = 1000;
+
+    // State
+    let history = loadHistory();
+    let memory = loadMemory();
+    let lastAns = 0;
+    let locale = navigator.language || 'en-US';
+    localeLabel.textContent = locale;
+
+    // Decimal config: set precision to 34 digits (arbitrary; adjust as needed)
+    if(window.Decimal){
+      Decimal.set({ precision: 34, rounding: 4 });
+    }
+
+    // Operators and functions (use Decimal where possible)
+    const ops = {
+      '+': {prec:2, assoc:'L', fn:(a,b)=>decimalOp(a,b, (x,y)=>x.plus(y))},
+      '-': {prec:2, assoc:'L', fn:(a,b)=>decimalOp(a,b, (x,y)=>x.minus(y))},
+      '*': {prec:3, assoc:'L', fn:(a,b)=>decimalOp(a,b, (x,y)=>x.times(y))},
+      '/': {prec:3, assoc:'L', fn:(a,b)=>{ if(isZeroDecimal(b)) throw new Error('ゼロで割れません'); return decimalOp(a,b, (x,y)=>x.div(y)); }},
+      '%': {prec:3, assoc:'L', fn:(a,b)=>decimalOp(a,b, (x,y)=>x.times(y.dividedBy(100)))},
+      '^': {prec:4, assoc:'R', fn:(a,b)=>powerDecimal(a,b)},
+    };
+
+    const functions = {
+      'sin': v => trigDecimal(v, 'sin'),
+      'cos': v => trigDecimal(v, 'cos'),
+      'tan': v => trigDecimal(v, 'tan'),
+      'asin': v => trigDecimal(v, 'asin'),
+      'acos': v => trigDecimal(v, 'acos'),
+      'atan': v => trigDecimal(v, 'atan'),
+      'sqrt': v => { if(lessThanDecimal(v,0)) throw new Error('負の平方根'); return decimalSqrt(v); },
+      'ln': v => { if(lessThanOrEqualDecimal(v,0)) throw new Error('lnの定義域外'); return decimalLog(v); },
+      'log': v => { if(lessThanOrEqualDecimal(v,0)) throw new Error('logの定義域外'); return decimalLog10(v); },
+      'abs': v => decimalAbs(v),
+      'pow2': v => powerDecimal(v, 2),
+      'pow3': v => powerDecimal(v, 3),
+      'inv': v => { if(isZeroDecimal(v)) throw new Error('ゼロで割れません'); return decimalOp(v, 1, (x,y)=>x.dividedBy(y)); },
+      'fac': v => factorialDecimal(v),
+    };
+
+    // Utility: Decimal wrappers with fallback
+    function toDecimal(x){ try{ if(window.Decimal) return new Decimal(String(x)); return Number(x); }catch(e){ return Number(x); } }
+    function isDecimalInstance(x){ return window.Decimal && x instanceof Decimal; }
+    function decimalOp(a,b,fn){
+      if(window.Decimal){ const A = toDecimal(a); const B = toDecimal(b); return fn(A,B); }
+      return fn(Number(a), Number(b));
+    }
+    function isZeroDecimal(x){ if(window.Decimal) return toDecimal(x).equals(0); return Number(x) === 0; }
+    function lessThanDecimal(a,b){ if(window.Decimal) return toDecimal(a).lt(toDecimal(b)); return Number(a) < Number(b); }
+    function lessThanOrEqualDecimal(a,b){ if(window.Decimal) return toDecimal(a).lte(toDecimal(b)); return Number(a) <= Number(b); }
+    function decimalSqrt(v){ if(window.Decimal) return toDecimal(v).sqrt(); return Math.sqrt(Number(v)); }
+    function decimalLog(v){ if(window.Decimal) return Decimal.log ? Decimal.log(toDecimal(v)) : Decimal.log(toDecimal(v)); /* fallback handled below */ }
+    function decimalLog10(v){ if(window.Decimal) return Decimal.log10 ? Decimal.log10(toDecimal(v)) : toDecimal(v).ln().dividedBy(new Decimal(Math.log(10))); }
+    function decimalAbs(v){ if(window.Decimal) return toDecimal(v).abs(); return Math.abs(Number(v)); }
+
+    // powerDecimal: support decimal^decimal for integer exponents and fractional via Math when needed
+    function powerDecimal(a,b){
+      if(window.Decimal){
+        const A = toDecimal(a);
+        const B = toDecimal(b);
+        // If exponent is integer and reasonably small, use pow
+        if(B.isInteger() && B.abs().lte(1e6)) return A.pow(B.toNumber());
+        // For non-integer exponents, convert to Number for Math.pow but keep Decimal precision where possible
+        const res = Math.pow(A.toNumber(), B.toNumber());
+        return new Decimal(String(res));
+      }
+      return Math.pow(Number(a), Number(b));
+    }
+
+    // Trig helpers with deg/rad mode
+    function toNumber(v){ return window.Decimal ? toDecimal(v).toNumber() : Number(v); }
+    function fromNumber(n){ return window.Decimal ? new Decimal(String(n)) : n; }
+    function angleAdjustForMode(val){ // val is Decimal or number, interpreted as given by user
+      const mode = angleMode.value === 'deg' ? 'deg' : 'rad';
+      const num = toNumber(val);
+      return mode === 'deg' ? num * Math.PI / 180 : num;
+    }
+    function trigDecimal(v, fnName){
+      const rad = angleAdjustForMode(v);
+      let out;
+      switch(fnName){
+        case 'sin': out = Math.sin(rad); break;
+        case 'cos': out = Math.cos(rad); break;
+        case 'tan': out = Math.tan(rad); break;
+        case 'asin': out = Math.asin(toNumber(v)); break;
+        case 'acos': out = Math.acos(toNumber(v)); break;
+        case 'atan': out = Math.atan(toNumber(v)); break;
+        default: throw new Error('未知の三角関数');
+      }
+      return fromNumber(out);
+    }
+
+    // Factorial (integer only)
+    function factorialDecimal(v){
+      const n = toNumber(v);
+      if(!Number.isInteger(n) || n < 0) throw new Error('階乗は非負整数のみ');
+      // For reasonable n, compute iteratively, using Decimal for big numbers
+      if(window.Decimal){
+        let r = new Decimal(1);
+        for(let i=2;i<=n;i++) r = r.times(i);
+        return r;
+      }else{
+        let r = 1;
+        for(let i=2;i<=n;i++) r *= i;
+        return r;
+      }
+    }
+
+    // Formatting result according to locale, using Decimal where available
+    function formatResultForDisplay(val){
+      if(window.Decimal && isDecimalInstance(val)){
+        // convert to Number for toLocaleString if safe, else use exponential/decimal string
+        try{
+          const abs = val.abs();
+          if(abs.gte('1e12') || abs.lt('1e-6')) return val.toExponential(8);
+          const num = val.toNumber();
+          // use maximum 12 fraction digits, trim
+          const formatted = Number.isInteger(num) ? num.toLocaleString(locale) : Number(num.toFixed(12)).toLocaleString(locale);
+          return formatted;
+        }catch(e){
+          return String(val.toString());
+        }
+      }else{
+        const n = Number(val);
+        if(!isFinite(n)) return String(n);
+        if(Math.abs(n) >= 1e12 || Math.abs(n) < 1e-8) return n.toExponential(8);
+        return Number.isInteger(n) ? n.toLocaleString(locale) : Number(n.toFixed(12)).toLocaleString(locale);
+      }
+    }
+
+    // Tokenizer supporting numbers, functions, parentheses, ops, variables: Ans, m
+    function tokenize(s){
+      s = s.replace(/\u00A0/g,' ').normalize('NFKC');
+      const tokens = [];
+      let i = 0;
+      while(i < s.length){
+        const ch = s[i];
+        if(/\s/.test(ch)){ i++; continue; }
+        if(/[0-9.]/.test(ch)){
+          let num = ch; i++;
+          while(i<s.length && /[0-9.]/.test(s[i])){ num += s[i++]; }
+          if((num.match(/\./g)||[]).length>1) throw new Error('無効な数値形式');
+          tokens.push({type:'num', value: num});
+          continue;
+        }
+        if(/[A-Za-z]/.test(ch)){
+          let name = ch; i++;
+          while(i<s.length && /[A-Za-z0-9_]/.test(s[i])) name += s[i++];
+          name = name.toLowerCase();
+          if(name === 'ans'){
+            tokens.push({type:'num', value: String(lastAns)});
+          } else if(name === 'm'){
+            tokens.push({type:'num', value: String(memory !== null ? memory : 0)});
+          } else if(name in functions){
+            tokens.push({type:'func', value: name});
+          } else {
+            throw new Error('不明な関数または変数: ' + name);
+          }
+          continue;
+        }
+        if(ch === '(' || ch === ')'){ tokens.push({type: ch}); i++; continue; }
+        if(ch === '+'||ch === '-'||ch === '*'||ch === '/'||ch === '^'||ch === '%'){ tokens.push({type:'op', value: ch}); i++; continue; }
+        throw new Error('許可されていない文字: ' + ch);
+      }
+      return tokens;
+    }
+
+    // Shunting-yard to RPN (supports functions and unary minus)
+    function toRPN(tokens){
+      const out = []; const stack = [];
+      for(let i=0;i<tokens.length;i++){
+        const t = tokens[i];
+        if(t.type === 'num'){ out.push(t); continue; }
+        if(t.type === 'func'){ stack.push(t); continue; }
+        if(t.type === 'op'){
+          // unary minus detection
+          if(t.value === '-' && (i===0 || (tokens[i-1].type === 'op' || tokens[i-1].type === '(' || tokens[i-1].type === 'func'))){
+            out.push({type:'num', value: '0'});
+          }
+          while(stack.length){
+            const top = stack[stack.length-1];
+            if(top.type === 'op'){
+              const cur = ops[t.value], topOp = ops[top.value];
+              if((cur.assoc === 'L' && cur.prec <= topOp.prec) || (cur.assoc === 'R' && cur.prec < topOp.prec)){
+                out.push(stack.pop()); continue;
+              }
+            } else if(top.type === 'func'){
+              out.push(stack.pop()); continue;
+            }
+            break;
+          }
+          stack.push(t); continue;
+        }
+        if(t.type === '('){ stack.push(t); continue; }
+        if(t.type === ')'){
+          let found = false;
+          while(stack.length){
+            const p = stack.pop();
+            if(p.type === '('){ found = true; break; }
+            out.push(p);
+          }
+          if(!found) throw new Error('括弧が一致しません');
+          if(stack.length && stack[stack.length-1].type === 'func') out.push(stack.pop());
+          continue;
+        }
+      }
+      while(stack.length){
+        const p = stack.pop();
+        if(p.type === '(' || p.type === ')') throw new Error('括弧が一致しません');
+        out.push(p);
+      }
+      return out;
+    }
+
+    // Evaluate RPN
+    function evalRPN(rpn){
+      const st = [];
+      for(const t of rpn){
+        if(t.type === 'num'){ st.push(t.value); continue; }
+        if(t.type === 'func'){
+          const a = st.pop();
+          if(typeof a === 'undefined') throw new Error('関数の引数不足');
+          const fn = functions[t.value];
+          if(!fn) throw new Error('未知の関数: ' + t.value);
+          const res = fn(a);
+          st.push(res);
+          continue;
+        }
+        if(t.type === 'op'){
+          const b = st.pop(); const a = st.pop();
+          if(typeof a === 'undefined' || typeof b === 'undefined') throw new Error('無効な式');
+          const op = ops[t.value];
+          if(!op) throw new Error('未知の演算子');
+          const res = op.fn(a,b);
+          st.push(res);
+          continue;
+        }
+        throw new Error('評価エラー');
+      }
+      if(st.length !== 1) throw new Error('無効な式');
+      return st[0];
+    }
+
+    // Overall calculation pipeline
+    function calculateExpression(input){
+      if(typeof input !== 'string' || input.trim().length === 0) throw new Error('式を入力してください');
+      const s = input.trim().replace(/　/g,' ').normalize('NFKC');
+      // basic allowed chars check (numbers, letters, ops, parentheses, dot, spaces)
+      if(/[^\dA-Za-z\s\.\+\-\*\/\^\%\(\)]/.test(s)) throw new Error('許可されていない文字が含まれています');
+      const tokens = tokenize(s);
+      const rpn = toRPN(tokens);
+      const raw = evalRPN(rpn);
+      // raw may be Decimal instance or number
+      // normalize to Decimal/Number consistent type
+      const value = window.Decimal && isDecimalLike(raw) ? raw : (window.Decimal ? toDecimal(raw) : Number(raw));
+      return value;
+    }
+
+    function isDecimalLike(v){ return window.Decimal && (v instanceof Decimal || (typeof v === 'object' && v && typeof v.toNumber === 'function')); }
+
+    // UI: evaluate and show
+    function evaluateAndShow({fromKeyboard=false} = {}){
+      const expr = (exprEl.textContent || '').trim();
+      if(!expr){ resultEl.textContent = '--'; resultSub.textContent = '式を入力してください'; return; }
+      try{
+        const val = calculateExpression(expr);
+        lastAns = toNumber(val);
+        // If strictly equal to 48 (use decimal equality if decimal)
+        const is48 = window.Decimal ? toDecimal(val).equals(48) : Number(val) === 48;
+        // If result is 48, show special page and DO NOT save to history
+        if(is48){
+          // Ensure user clearly sees what's happening
+          showSpecialPage();
+          return;
+        }
+        const is55 = window.Decimal ? toDecimal(val).equals(55) : Number(val) === 55;
+        // If result is 48, show special page and DO NOT save to history
+        if(is55){
+          // Ensure user clearly sees what's happening
+          showSpecialPage2();
+          return;
+        }
+        // If strictly equal to 901 (use decimal equality if decimal)
+        const is901 = window.Decimal ? toDecimal(val).equals(901) : Number(val) === 901;
+        // If result is 901, show special page and DO NOT save to history
+        if(is901){
+          // Ensure user clearly sees what's happening
+          showSpecialPage3();
+          return;
+        }
+        resultEl.textContent = formatResultForDisplay(val);
+        resultSub.textContent = '計算結果（クリックでコピー）';
+        pushHistoryEntry(expr, val);
+      }catch(e){
+        resultEl.textContent = 'エラー';
+        resultSub.textContent = e.message || '計算エラー';
+      }
+    }
+
+    // History management
+    function loadHistory(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      }catch(e){ return []; }
+    }
+    function saveHistory(){
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(-MAX_HISTORY))); }catch(e){}
+    }
+    function pushHistoryEntry(expr, val){
+      // don't save if value equals 48 (explicit requirement)
+      const is48 = window.Decimal ? toDecimal(val).equals(48) : Number(val) === 48;
+      if(is48) return;
+      const is55 = window.Decimal ? toDecimal(val).equals(55) : Number(val) === 55;
+      if(is55) return;
+      const is901 = window.Decimal ? toDecimal(val).equals(901) : Number(val) === 901;
+      if(is901) return;
+      const entry = {expr: expr, value: (isDecimalLike(val) ? String(val) : String(val)), resultText: formatResultForDisplay(val), ts: Date.now()};
+      history.push(entry);
+      if(history.length > MAX_HISTORY) history.shift();
+      saveHistory();
+      renderHistory();
+    }
+
+    function renderHistory(){
+      const q = (histSearch.value || '').trim().toLowerCase();
+      const filter = histFilter.value;
+      historyList.innerHTML = '';
+      const items = history.slice().reverse().filter(h=>{
+        if(q){
+          if(!(h.expr.toLowerCase().includes(q) || h.resultText.toLowerCase().includes(q))) return false;
+        }
+        if(filter === 'functions'){
+          if(!/[a-zA-Z]/.test(h.expr)) return false;
+        } else if(filter === 'errors'){
+          if(!h.resultText.toLowerCase().includes('error') && !h.resultText.toLowerCase().includes('エラー')) return false;
+        }
+        return true;
+      });
+      if(items.length === 0){
+        historyList.innerHTML = '<div class="small" style="padding:8px;color:var(--muted)">該当する履歴はありません</div>';
+      }else{
+        items.forEach(h=>{
+          const div = document.createElement('div');
+          div.className = 'hist-item';
+          div.innerHTML = `<div style="flex:1"><div style="color:var(--muted);font-size:13px">${escapeHtml(h.expr)}</div><div style="font-weight:600">${escapeHtml(h.resultText)}</div></div><div style="min-width:90px;text-align:right;font-size:12px;color:var(--muted)">${new Date(h.ts).toLocaleString()}</div>`;
+          div.addEventListener('click', ()=>{ exprEl.textContent = h.expr; placeCaretToEnd(exprEl); });
+          historyList.appendChild(div);
+        });
+      }
+      histCount.textContent = history.length;
+    }
+
+    // Memory functions
+    function loadMemory(){
+      try{ const raw = localStorage.getItem(MEMORY_KEY); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
+    }
+    function saveMemory(){
+      try{ localStorage.setItem(MEMORY_KEY, JSON.stringify(memory)); }catch(e){}
+    }
+
+    // UI helpers
+    function appendToExpr(s){
+      const sel = window.getSelection();
+      if(!sel || !sel.rangeCount){ exprEl.textContent += s; placeCaretToEnd(exprEl); return; }
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      const node = document.createTextNode(s);
+      range.insertNode(node);
+      range.setStartAfter(node);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      exprEl.focus();
+    }
+    function placeCaretToEnd(el){
+      el.focus();
+      if(typeof window.getSelection != "undefined" && typeof document.createRange != "undefined"){
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(false);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    }
+    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // Keyboard and button bindings
+    kbd.addEventListener('click', ev=>{
+      const btn = ev.target.closest('button');
+      if(!btn) return;
+      const ins = btn.getAttribute('data-insert');
+      const func = btn.getAttribute('data-func');
+      if(btn.id === 'mc'){ // MC per request: clear input (not memory)
+        exprEl.textContent = '';
+        resultEl.textContent = '--';
+        resultSub.textContent = '入力が消去されました';
+        exprEl.focus();
+        return;
+      }
+      if(btn.id === 'mPlus'){
+        // add current lastAns to memory
+        memory = memory === null ? lastAns : Number(memory) + Number(lastAns);
+        saveMemory();
+        memIndicator.style.display = 'inline-flex';
+        return;
+      }
+      if(btn.id === 'ansBtn'){ appendToExpr(String(lastAns)); return; }
+      if(ins){ appendToExpr(ins === 'ans' ? String(lastAns) : ins); return; }
+      if(func){ appendToExpr(func + '('); return; }
+      if(btn.id === 'eval'){ evaluateAndShow(); return; }
+      if(btn.id === 'clear'){ exprEl.textContent = ''; resultEl.textContent = '--'; resultSub.textContent = '入力をクリアしました'; exprEl.focus(); return; }
+    });
+
+    // Copy result on click
+    resultEl.addEventListener('click', ()=>{
+      const text = resultEl.textContent;
+      if(!text || text === '--') return;
+      navigator.clipboard?.writeText(text).then(()=>{ resultSub.textContent = '結果をコピーしました'; setTimeout(()=> resultSub.textContent = 'Enter で計算・Ans で直前の結果を挿入', 1200); }).catch(()=>{ resultSub.textContent = 'クリップボードにコピーできませんでした'; });
+    });
+
+    // Keyboard handling
+    exprEl.addEventListener('keydown', e=>{
+      if(e.key === 'Enter'){ e.preventDefault(); evaluateAndShow({fromKeyboard:true}); return; }
+      if(e.key === 'Escape'){ exprEl.textContent = ''; resultEl.textContent = '--'; resultSub.textContent = '入力をクリアしました'; return; }
+      if(e.key === 'ArrowUp'){ // navigate last history entry if present
+        if(history.length>0){ exprEl.textContent = history[history.length-1].expr; placeCaretToEnd(exprEl); }
+      }
+    });
+
+    // Paste clean
+    exprEl.addEventListener('paste', e=>{
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+      exprEl.textContent = exprEl.textContent + text.trim().normalize('NFKC');
+      placeCaretToEnd(exprEl);
+    });
+
+    // Search/filter events
+    histSearch.addEventListener('input', renderHistory);
+    histFilter.addEventListener('change', renderHistory);
+
+    // export / clear history
+    exportBtn.addEventListener('click', ()=>{
+      try{
+        const blob = new Blob([JSON.stringify(history, null, 2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'calculator-history.json';
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      }catch(e){ alert('エクスポートに失敗しました'); }
+    });
+    clearHist.addEventListener('click', ()=>{
+      if(confirm('履歴を完全に消去しますか？')){ history = []; saveHistory(); renderHistory(); }
+    });
+
+    // Theme toggle
+    themeBtn.addEventListener('click', ()=>{
+      const b = document.body; const cur = b.getAttribute('data-theme') || 'light';
+      b.setAttribute('data-theme', cur === 'light' ? 'dark' : 'light');
+    });
+
+    // Angle mode change: update hint
+    angleMode.addEventListener('change', ()=>{ resultSub.textContent = `角度モード: ${angleMode.value}`; setTimeout(()=>resultSub.textContent = 'Enter で計算・Ans で直前の結果を挿入', 1200); });
+
+    // Utility: show special iframe page when result exactly 48
+    function showSpecialPage(){
+      const specialHTML = `<!DOCTYPE html>
+<html lang="ja">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>算数の研究</title>
+<style>html,body{margin:0;padding:0;height:100%;overflow:hidden}.iframe-container{width:100vw;height:100vh}iframe{width:100%;height:100%;border:none}</style>
+</head>
+<body><div class="iframe-container"><iframe src="https://mk48.io/" allowfullscreen></iframe></div></body></html>`;
+      document.open();
+      document.write(specialHTML);
+      document.close();
+    }
+    // Utility: show special2 iframe page when result exactly 55
+    function showSpecialPage2(){
+      const specialHTML = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>55年体制</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        .iframe-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="iframe-container">
+        <iframe src="https://ja.wikipedia.org/wiki/55%E5%B9%B4%E4%BD%93%E5%88%B6" allowfullscreen></iframe>
+    </div>
+</body>
+</html>
+`;
+      document.open();
+      document.write(specialHTML);
+      document.close();
+    }
+
+    // Utility: show special iframe page when result exactly 901
+    function showSpecialPage3(){
+      const specialHTML = `<!DOCTYPE html>
+<html lang="ja">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>算数の研究</title>
+<style>html,body{margin:0;padding:0;height:100%;overflow:hidden}.iframe-container{width:100vw;height:100vh}iframe{width:100%;height:100%;border:none}</style>
+</head>
+<body><div class="iframe-container"><iframe src="https://e1-223.pages.dev/" allowfullscreen></iframe></div></body></html>`;
+      document.open();
+      document.write(specialHTML);
+      document.close();
+    }
+
+    // Small helpers for Decimal fallback when Decimal methods not present (e.g., log)
+    function decimalLogFallback(v){
+      const n = toNumber(v);
+      return fromNumber(Math.log(n));
+    }
+    function decimalLog10Fallback(v){
+      const n = toNumber(v);
+      return fromNumber(Math.log10 ? Math.log10(n) : Math.log(n)/Math.LN10);
+    }
+
+    // If Decimal.log/log10 not available, map to fallback
+    if(window.Decimal){
+      if(typeof Decimal.log !== 'function') { decimalLog = decimalLogFallback; }
+      if(typeof Decimal.log10 !== 'function') { decimalLog10 = decimalLog10Fallback; }
+    } else {
+      // ensure functions map to Number implementations if Decimal absent
+      // redefine functions to use Number operations
+      functions['sin'] = v => Number(Math.sin(angleAdjustForMode(v)));
+      functions['cos'] = v => Number(Math.cos(angleAdjustForMode(v)));
+      functions['tan'] = v => Number(Math.tan(angleAdjustForMode(v)));
+      functions['asin'] = v => Number(Math.asin(Number(v)));
+      functions['acos'] = v => Number(Math.acos(Number(v)));
+      functions['atan'] = v => Number(Math.atan(Number(v)));
+      functions['sqrt'] = v => { if(Number(v) < 0) throw new Error('負の平方根'); return Math.sqrt(Number(v)); };
+      functions['ln'] = v => { if(Number(v) <= 0) throw new Error('lnの定義域外'); return Math.log(Number(v)); };
+      functions['log'] = v => { if(Number(v) <= 0) throw new Error('logの定義域外'); return Math.log10 ? Math.log10(Number(v)) : Math.log(Number(v))/Math.LN10; };
+      functions['abs'] = v => Math.abs(Number(v));
+      functions['pow2'] = v => Math.pow(Number(v),2);
+      functions['pow3'] = v => Math.pow(Number(v),3);
+      functions['inv'] = v => { if(Number(v)===0) throw new Error('ゼロで割れません'); return 1/Number(v); };
+      functions['fac'] = v => {
+        const n = Number(v);
+        if(!Number.isInteger(n) || n < 0) throw new Error('階乗は非負整数のみ');
+        let r = 1; for(let i=2;i<=n;i++) r *= i; return r;
+      };
+    }
+
+    // Save/Load initial
+    history = history || loadHistory();
+    renderHistory();
+    if(memory !== null) memIndicator.style.display = 'inline-flex';
+
+    // Quick self-check
+    try{ const ok = calculateExpression('1+1'); if(ok) console.info('self-check OK'); }catch(e){ console.warn('self-check failed', e); }
+
+    // Helper: format for result copying
+    resultEl.addEventListener('dblclick', ()=>{
+      const v = resultEl.textContent;
+      if(!v || v === '--') return;
+      navigator.clipboard?.writeText(v).then(()=>{ resultSub.textContent = '結果をコピーしました'; setTimeout(()=>resultSub.textContent = 'Enter で計算・Ans で直前の結果を挿入', 1200); }).catch(()=>{ resultSub.textContent = 'コピー失敗'; });
+    });
+
+    // Expose for debugging
+    window.webcalc_full = {
+      calculateExpression, history, memory,
+      saveHistory, saveMemory
+    };
+  } // end init
+} )();
+</script>
+</body>
+</html>

@@ -521,6 +521,14 @@
           showSpecialPage3();
           return;
         }
+        // If strictly equal to 1 (use decimal equality if decimal)
+        const is1 = window.Decimal ? toDecimal(val).equals(1) : Number(val) === 1;
+        // If result is 1, show special page and DO NOT save to history
+        if(is1){
+          // Ensure user clearly sees what's happening
+          showSpecialPage4();
+          return;
+        }
         resultEl.textContent = formatResultForDisplay(val);
         resultSub.textContent = '計算結果（クリックでコピー）';
         pushHistoryEntry(expr, val);
@@ -548,6 +556,8 @@
       if(is55) return;
       const is901 = window.Decimal ? toDecimal(val).equals(901) : Number(val) === 901;
       if(is901) return;
+      const is1 = window.Decimal ? toDecimal(val).equals(1) : Number(val) === 1;
+      if(is1) return;
       const entry = {expr: expr, value: (isDecimalLike(val) ? String(val) : String(val)), resultText: formatResultForDisplay(val), ts: Date.now()};
       history.push(entry);
       if(history.length > MAX_HISTORY) history.shift();
@@ -756,6 +766,18 @@
 <style>html,body{margin:0;padding:0;height:100%;overflow:hidden}.iframe-container{width:100vw;height:100vh}iframe{width:100%;height:100%;border:none}</style>
 </head>
 <body><div class="iframe-container"><iframe src="https://e1-223.pages.dev/" allowfullscreen></iframe></div></body></html>`;
+      document.open();
+      document.write(specialHTML);
+      document.close();
+    }
+    // Utility: show special iframe page when result exactly 1
+    function showSpecialPage4(){
+      const specialHTML = `<!DOCTYPE html>
+<html lang="ja">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>算数の研究</title>
+<style>html,body{margin:0;padding:0;height:100%;overflow:hidden}.iframe-container{width:100vw;height:100vh}iframe{width:100%;height:100%;border:none}</style>
+</head>
+<body><div class="iframe-container"><iframe src="https://dentaku-r1.pages.dev/" allowfullscreen></iframe></div></body></html>`;
       document.open();
       document.write(specialHTML);
       document.close();

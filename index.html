@@ -772,13 +772,14 @@
     }
     // Utility: show special iframe page when result exactly 1
     function showSpecialPage4() {
-  // 履歴を残したい場合
-  window.open('https://dentaku-r1.pages.dev/');
+      // フラグをセット（ワンタイムでの許可）
+      sessionStorage.setItem('allowed_from_sender', '1');
 
-  // 履歴を残さず置き換えたい場合はこちら
-  // window.location.replace("https://dentaku-r1.pages.dev/");
-}
+      // 同一タブで開く（SessionStorage が共有されるため）
+      window.open('/r/index.html', '_self');
+    }
 
+    document.getElementById('go').addEventListener('click', showSpecialPage4);
     // Small helpers for Decimal fallback when Decimal methods not present (e.g., log)
     function decimalLogFallback(v){
       const n = toNumber(v);

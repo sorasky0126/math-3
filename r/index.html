@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ブラウザ計算機 </title>
+<link rel="icon" href="data:image/png;base64,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">
+<style>
+  :root{
+    --bg:#0a0f1a;
+    --panel:#0d1524;
+    --ink:#e6eef8;
+    --muted:#94a3b8;
+    --accent1:#3b82f6;
+    --accent2:#8b5cf6;
+    --ok:#10b981;
+    --warn:#f59e0b;
+    --err:#ef4444;
+    --border:#162235;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    margin:0; padding:40px;
+    background:
+      radial-gradient(1200px 600px at 10% 10%, #0e1730 0%, var(--bg) 60%),
+      radial-gradient(900px 900px at 80% 20%, #0b1430 0%, transparent 60%),
+      linear-gradient(180deg, #0a0f1a 0%, #0a0f1a 100%);
+    color:var(--ink);
+  }
+  .panel{
+    max-width:1100px;margin:0 auto;padding:24px 24px 28px;
+    background:linear-gradient(180deg, rgba(20,28,48,.6), rgba(13,21,36,.7)),
+               linear-gradient(180deg, var(--panel), var(--panel));
+    border:1px solid var(--border);
+    border-radius:16px;
+    backdrop-filter: blur(6px);
+    box-shadow:
+      0 20px 50px rgba(0,0,0,.45),
+      inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  h1{
+    font-size:22px; letter-spacing:.6px; margin:0 0 16px;
+    color:#f1f5f9; font-weight:700;
+  }
+  .sub{
+    color:var(--muted); font-size:13px; margin-bottom:20px;
+  }
+  .controls{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;
+  }
+  input,select,button{
+    padding:10px 12px;border-radius:10px;border:0;background:#0a1426;color:#e6eef8;
+    font-size:14px; outline:none;
+    box-shadow:inset 0 0 0 1px #122035, 0 4px 10px rgba(0,0,0,.25);
+  }
+  input::placeholder{color:#6b7280}
+  select{cursor:pointer}
+  button{
+    cursor:pointer;background:#111b33;
+    transition:transform .08s ease, background .2s ease, box-shadow .2s ease;
+    box-shadow:
+      inset 0 0 0 1px #1c2b47,
+      0 8px 20px rgba(0,0,0,.35);
+  }
+  button:hover{background:#162342; transform:translateY(-1px)}
+  button:active{transform:translateY(0)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+
+  .stats{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:13px;color:var(--muted)}
+  .badge{
+    background:linear-gradient(180deg, #0c162a, #0b1426);
+    padding:8px 12px;border-radius:10px;display:inline-flex;gap:6px;
+    border:1px solid #152338;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.02), 0 8px 18px rgba(0,0,0,.28);
+  }
+  .badge.ok{border-color:#124236}
+  .badge.warn{border-color:#3b2a12}
+  .progress{margin-top:12px;height:22px;background:#0a1426;border-radius:12px;overflow:hidden;position:relative;border:1px solid #162235}
+  .progress-bar{
+    height:100%;
+    background:linear-gradient(90deg, var(--accent1), var(--accent2));
+    transition:width 0.3s; display:flex; align-items:center; justify-content:center;
+    color:white; font-size:12px; text-shadow:0 1px 0 rgba(0,0,0,.4);
+  }
+  .log{
+    margin-top:16px;padding:14px;border-radius:12px;
+    background:#0b172a;border:1px solid #162235;height:360px;overflow:auto;
+    font-size:13px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    line-height:1.55;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
+  }
+  .kv{display:grid;grid-template-columns:140px 1fr;gap:6px;margin-top:8px}
+  .kv .k{color:#93c5fd}
+  .kv .v{color:#e2e8f0}
+  .hr{border-top:1px dashed #1f2937;margin:8px 0}
+
+  /* Accent separators */
+  .divider{
+    height:1px; margin:18px 0;
+    background:linear-gradient(90deg, transparent, #152338, transparent);
+  }
+
+  /* Header strip */
+  .header{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+  }
+  .chip{
+    font-size:11px; color:#cbd5e1; padding:4px 8px; border-radius:999px;
+    background:#0c162a; border:1px solid #152338;
+  }
+</style>
+</head>
+<body>
+  <div class="panel">
+    <div class="header">
+      <div class="brand">
+        <h1>ブラウザ計算機</h1>
+        <span class="chip">Strict Debug Edition</span>
+      </div>
+    </div>
+    <p class="sub">pushState優先＋hashフォールバック。各エントリを直列で確定検証し、詳細ログを記録します。</p>
+
+    <div class="controls">
+      <input id="count" type="number" value="500" min="1" max="1000000" style="width:120px" placeholder="追加数" />
+      <input id="delay" type="number" value="10" min="0.01" max="1000" style="width:110px" placeholder="遅延(ms)" />
+      <input id="chunkSize" type="number" value="10" min="1" max="1000" style="width:110px" placeholder="チャンク" />
+      <select id="strictness" title="検証厳密度" style="width:190px">
+        <option value="url">URL一致（推奨）</option>
+        <option value="url+len">URL一致＋履歴長増加</option>
+        <option value="len">履歴長増加のみ</option>
+      </select>
+      <button id="run">開始</button>
+      <button id="stop">停止</button>
+      <button id="cleanup">元に戻す</button>
+      <button id="verify">検証</button>
+      <button id="clear">ログクリア</button>
+    </div>
+
+    <div class="stats">
+      <div class="badge"><span>開始時:</span> <span id="startLen">-</span></div>
+      <div class="badge"><span>現在:</span> <span id="curLen">-</span></div>
+      <div class="badge ok"><span>成功:</span> <span id="successCount">0</span></div>
+      <div class="badge warn"><span>スキップ:</span> <span id="skipCount">0</span></div>
+      <div class="badge"><span>進捗:</span> <span id="progress">0</span>%</div>
+    </div>
+
+    <div class="progress">
+      <div class="progress-bar" id="progressBar" style="width:0%">0%</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="log" id="log" aria-live="polite"></div>
+  </div>
+
+<script>
+//アクセスを確認
+function() {
+      const root = document.getElementById('root');
+
+      // 許可フラグのチェック
+      const allowed = sessionStorage.getItem('allowed_from_sender');
+
+      if (allowed === '1') {
+        // ワンタイム許可とするならここで削除
+        sessionStorage.removeItem('allowed_from_sender');
+
+        // 許可されている場合のコンテンツ
+        root.innerHTML = `
+          <h3>ようこそ — 許可されたアクセス</h3>
+          <p class="content">このページは指定のページから遷移したため閲覧が許可されています。</p>
+        `;
+      } else {
+        // 許可されていない場合のブロック表示（任意でリダイレクトやリンクを表示）
+        root.innerHTML = `
+          <h3 class="blocked">アクセス拒否</h3>
+          <p class="blocked">このページには直接アクセスできません。指定のページから遷移してください。</p>
+          <p>指定元ページへ戻る：<a href="/sender.html">送る側ページへ</a></p>
+        `;
+    }
+    
+/*
+ 厳密モード＋デバッグログ強化版
+ - pushState優先、失敗時にhashへフォールバック
+ - 各エントリは直列で「確定」まで待つ（イベント/URL一致/履歴長）
+ - 厳密度は3段階（URL一致 / URL一致+履歴長 / 履歴長）
+ - 豊富なデバッグログ（前後のhref/hash/history.length、イベント待機結果など）
+*/
+
+const logEl = document.getElementById('log');
+const countInput = document.getElementById('count');
+const delayInput = document.getElementById('delay');
+const chunkSizeInput = document.getElementById('chunkSize');
+const strictnessSel = document.getElementById('strictness');
+const runBtn = document.getElementById('run');
+const stopBtn = document.getElementById('stop');
+const cleanupBtn = document.getElementById('cleanup');
+const verifyBtn = document.getElementById('verify');
+const clearBtn = document.getElementById('clear');
+const startLenEl = document.getElementById('startLen');
+const curLenEl = document.getElementById('curLen');
+const successCountEl = document.getElementById('successCount');
+const skipCountEl = document.getElementById('skipCount');
+const progressEl = document.getElementById('progress');
+const progressBar = document.getElementById('progressBar');
+
+const STORAGE_KEY = '__accurate_history_strict_v2__';
+let stopRequested = false;
+let isRunning = false;
+let successCount = 0;
+let skipCount = 0;
+let startLength = 0;
+let targetTotal = 0;
+
+function log(msg, type = 'info'){
+  const d = document.createElement('div');
+  const time = new Date().toLocaleTimeString('ja-JP', {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', fractionalSecondDigits:3});
+  const color = type==='success' ? '#10b981'
+              : type==='warning' ? '#f59e0b'
+              : type==='error'   ? '#ef4444'
+              : '#93c5fd';
+  d.innerHTML = `<span style="color:${color}">[${time}]</span> ${msg}`;
+  logEl.prepend(d);
+  while(logEl.children.length > 300){ logEl.removeChild(logEl.lastChild); }
+}
+
+function updateUI(){
+  curLenEl.textContent = String(history.length);
+  successCountEl.textContent = String(successCount);
+  skipCountEl.textContent = String(skipCount);
+  if(targetTotal > 0){
+    const prog = Math.round(((successCount + skipCount) / targetTotal) * 100);
+    progressEl.textContent = String(prog);
+    progressBar.style.width = prog + '%';
+    progressBar.textContent = prog + '%';
+  }
+}
+
+// 期待URL生成（hashでユニーク性付与）
+function makeTargetUrl(index){
+  const u = new URL(location.href);
+  const ts = Date.now();
+  const rnd = Math.floor(Math.random() * 999999);
+  const nano = performance.now().toString().replace('.', '');
+  const tag = `entry_${index}_${ts}_${rnd}_${nano}`;
+  u.hash = tag;
+  return { url: u.toString(), hash: `#${tag}` };
+}
+
+// URL一致検証
+function matchesExpected(expectedHref, expectedHash){
+  const hrefOk = location.href === expectedHref;
+  const hashOk = location.hash === expectedHash;
+  return hrefOk && hashOk;
+}
+
+// 厳密度に応じた最終合格判定
+function finalCheck(strict, beforeLen, expectedHref, expectedHash){
+  const lenIncreased = history.length > beforeLen;
+  const urlMatch = matchesExpected(expectedHref, expectedHash);
+  if(strict === 'url') return urlMatch;
+  if(strict === 'url+len') return urlMatch && lenIncreased;
+  if(strict === 'len') return lenIncreased;
+  return urlMatch; // fallback
+}
+
+// 一度だけイベント待機（hashchangeのみで使用）
+function waitForEventOnce(type, timeoutMs){
+  return new Promise((resolve) => {
+    let done = false;
+    const onEvent = () => {
+      if(done) return;
+      done = true;
+      cleanup();
+      resolve('event');
+    };
+    const timer = setTimeout(() => {
+      if(done) return;
+      done = true;
+      cleanup();
+      resolve('timeout');
+    }, timeoutMs);
+    window.addEventListener(type, onEvent, { once: true });
+    function cleanup(){
+      clearTimeout(timer);
+      window.removeEventListener(type, onEvent);
+    }
+  });
+}
+
+// デバッグ用：状態のKVログ
+function logState(prefix){
+  const kv = [
+    ['href', location.href],
+    ['hash', location.hash || '(なし)'],
+    ['history.length', String(history.length)]
+  ];
+  log(`${prefix} 状態:`);
+  kv.forEach(([k,v]) => log(`  - ${k}: ${v}`));
+  log('<div class="hr"></div>');
+}
+
+// 1件追加（厳密）
+async function addSingleEntryStrict(index, strict, maxRetries = 4){
+  const beforeLen = history.length;
+
+  log(`エントリ ${index}: 追加開始`);
+  logState('追加前');
+
+  let attempt = 0;
+  while(attempt < maxRetries){
+    if(stopRequested) {
+      log(`エントリ ${index}: 停止要求により中断`, 'warning');
+      return false;
+    }
+
+    const { url: expectedHref, hash: expectedHash } = makeTargetUrl(index);
+    let usedPushState = false;
+
+    try {
+      history.pushState({ i: index }, '', expectedHref);
+      usedPushState = true;
+      log(`pushState 成功 → 期待href: ${expectedHref}`);
+    } catch (e) {
+      log(`pushState 失敗（${e.message}）→ hashフォールバック: ${expectedHash}`, 'warning');
+      location.hash = expectedHash;
+      usedPushState = false;
+    }
+
+    // 即時一致確認
+    if(matchesExpected(expectedHref, expectedHash)){
+      const ok = finalCheck(strict, beforeLen, expectedHref, expectedHash);
+      logState('即時確認後');
+      if(ok){
+        log(`エントリ ${index}: 即時一致で確定（strict=${strict}）`, 'success');
+        return true;
+      } else {
+        log(`エントリ ${index}: 即時一致だが厳密条件未達（strict=${strict}）`, 'warning');
+      }
+    } else {
+      log(`エントリ ${index}: 即時一致せず → 追加検証へ`, 'warning');
+    }
+
+    // イベント/待機を用いた確定検証
+    if(!usedPushState){
+      const result = await waitForEventOnce('hashchange', 120);
+      log(`hashchange待機結果: ${result}`);
+    } else {
+      await new Promise(r => setTimeout(r, 2));
+      log(`pushState後の短期待機完了`);
+    }
+
+    const ok2 = finalCheck(strict, beforeLen, expectedHref, expectedHash);
+    logState('最終確認後');
+
+    if(ok2){
+      log(`エントリ ${index}: 確定（strict=${strict}）`, 'success');
+      return true;
+    }
+
+    // 失敗 → バックオフして再試行
+    attempt++;
+    const backoff = 12 * Math.pow(2, attempt);
+    log(`エントリ ${index}: 失敗 → リトライ ${attempt}/${maxRetries}（待機 ${backoff}ms）`, 'warning');
+    await new Promise(r => setTimeout(r, backoff));
+  }
+
+  log(`エントリ ${index}: 最大リトライ到達 → スキップ`, 'error');
+  return false;
+}
+
+// メイン（直列・厳密）
+async function runAccurate(){
+  const total = Math.max(1, Math.min(1000000, Number(countInput.value) || 100));
+  const delay = Math.max(0.01, Number(delayInput.value) || 10);
+  const chunkSize = Math.max(1, Math.min(100, Number(chunkSizeInput.value) || 10));
+  const strict = String(strictnessSel.value || 'url');
+
+  stopRequested = false;
+  isRunning = true;
+  successCount = 0;
+  skipCount = 0;
+  targetTotal = total;
+  startLength = history.length;
+
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+    startLength,
+    timestamp: Date.now(),
+    total,
+    strict
+  }));
+
+  startLenEl.textContent = String(startLength);
+  updateUI();
+
+  log(`=== 履歴追加開始（厳密モード） ===`, 'success');
+  log(`目標: ${total}件, チャンク: ${chunkSize}件, 遅延: ${delay}ms, 厳密度: ${strict}`);
+  log(`開始時履歴長: ${startLength}`);
+
+  runBtn.disabled = true;
+  stopBtn.disabled = false;
+
+  const t0 = performance.now();
+
+  for(let i = 1; i <= total; i++){
+    if(stopRequested){
+      log(`=== 停止要求により中断 ===`, 'warning');
+      break;
+    }
+
+    const ok = await addSingleEntryStrict(i, strict);
+    if(ok){
+      successCount++;
+      log(`追加成功 #${i} → 成功累計 ${successCount}（履歴長: ${history.length}）`, 'success');
+    } else {
+      skipCount++;
+      log(`追加失敗 #${i} → スキップ累計 ${skipCount}`, 'error');
+    }
+
+    updateUI();
+
+    // チャンク境界で安定化休憩
+    if(i % chunkSize === 0){
+      await new Promise(r => setTimeout(r, delay * 2));
+      log(`--- チャンク完了: ${i}/${total} ---`);
+    } else {
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+
+  const t1 = performance.now();
+  const elapsed = ((t1 - t0) / 1000).toFixed(2);
+
+  log(`=== 完了 ===`, 'success');
+  log(`経過時間: ${elapsed}秒`);
+  log(`成功: ${successCount}件, スキップ: ${skipCount}件`);
+  log(`履歴長: ${startLength} → ${history.length} (差分: ${history.length - startLength})`);
+
+  // 長さと成功件数の不一致警告（strict次第で発生しうる）
+  if(history.length - startLength !== successCount){
+    log(`注意: 成功(${successCount})と履歴増加(${history.length - startLength})が一致しない場合があります（厳密度=${strict}）`, 'warning');
+  }
+
+  isRunning = false;
+  runBtn.disabled = false;
+  stopBtn.disabled = true;
+  updateUI();
+}
+
+// 停止
+function stop(){
+  if(isRunning){
+    stopRequested = true;
+    log('停止要求を送信しました...', 'warning');
+  }
+}
+
+// クリーンアップ（元に戻す）
+async function cleanup(){
+  const stored = sessionStorage.getItem(STORAGE_KEY);
+  if(!stored){
+    log('復元情報がありません', 'warning');
+    return;
+  }
+  const info = JSON.parse(stored);
+  const target = info.startLength;
+  const current = history.length;
+  const diff = target - current;
+
+  log(`=== クリーンアップ開始 ===`);
+  log(`目標: ${target}, 現在: ${current}, 差分: ${diff}`);
+
+  if(diff === 0){
+    log('既に目標の長さです');
+    sessionStorage.removeItem(STORAGE_KEY);
+    return;
+  }
+
+  if(diff < 0){
+    log(`${Math.abs(diff)}ステップ戻ります...`);
+    for(let i = 0; i < Math.abs(diff); i++){
+      history.back();
+      await new Promise(r => setTimeout(r, 14));
+      if(i % 10 === 0) log(`戻り中... ${i}/${Math.abs(diff)}`);
+    }
+  } else {
+    log(`${diff}ステップ進みます...`);
+    history.go(diff);
+  }
+
+  sessionStorage.removeItem(STORAGE_KEY);
+  setTimeout(() => {
+    log(`クリーンアップ完了: 履歴長 = ${history.length}`, 'success');
+    updateUI();
+  }, 420);
+}
+
+// 履歴検証
+function verify(){
+  const stored = sessionStorage.getItem(STORAGE_KEY);
+  log(`=== 履歴検証 ===`);
+  log(`現在の履歴長: ${history.length}`);
+
+  if(stored){
+    const info = JSON.parse(stored);
+    log(`保存された開始長: ${info.startLength}`);
+    log(`追加予定数: ${info.total}`);
+    log(`厳密度: ${info.strict}`);
+    log(`実際の増加: ${history.length - info.startLength}`);
+  }
+
+  try{
+    log(`現在のURL: ${location.href}`);
+    log(`現在のハッシュ: ${location.hash || '(なし)'}`);
+  }catch(e){
+    log(`エラー: ${e.message}`, 'error');
+  }
+
+  updateUI();
+}
+
+// イベント
+runBtn.addEventListener('click', () => {
+  if(!isRunning){
+    runAccurate().catch(e => log(`エラー: ${e.message}`, 'error'));
+  }
+});
+stopBtn.addEventListener('click', stop);
+cleanupBtn.addEventListener('click', cleanup);
+verifyBtn.addEventListener('click', verify);
+clearBtn.addEventListener('click', () => {
+  logEl.innerHTML = '';
+  log('ログをクリアしました');
+});
+
+// 状態変化でUI同期
+window.addEventListener('popstate', () => { if(!isRunning) updateUI(); });
+window.addEventListener('hashchange', () => { if(!isRunning) updateUI(); });
+
+// 初期化
+(function init(){
+  const stored = sessionStorage.getItem(STORAGE_KEY);
+  if(stored){
+    const info = JSON.parse(stored);
+    startLenEl.textContent = String(info.startLength);
+    strictnessSel.value = info.strict || 'url';
+  } else {
+    startLenEl.textContent = '-';
+  }
+  curLenEl.textContent = String(history.length);
+  stopBtn.disabled = true;
+
+  log('Strict Debug Edition — 準備完了');
+  log('pushState優先＋hashフォールバックで、各エントリの確定をイベントとURL一致・履歴長で検証します');
+})();
+</script>
+</body>
+</html>
